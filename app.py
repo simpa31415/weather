@@ -2,6 +2,7 @@ from flask import Flask, render_template
 import requests
 from datetime import datetime, timedelta
 import pytz
+import os
 
 app = Flask(__name__)
 
@@ -51,6 +52,6 @@ def home():
                            prec_prob=prec_prob,
                            wind_max=wind_max)
 
-if __name__ == "__main__":
+if __name__ == "__master__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
