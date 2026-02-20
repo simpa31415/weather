@@ -7,48 +7,37 @@ app = Flask(__name__)
 
 @app.route("/")
 def home():
-    # Stockholm koordinater
     lat = 59.3293
     lon = 18.0686
     url = f"https://opendata-download-metfcst.smhi.se/api/category/pmp3g/version/2/geotype/point/lon/{lon}/lat/{lat}/data.json"
 
     response = requests.get(url)
     data = response.json()
-    
-    # Hämta morgondagens prognos (ungefär 24 timmar fram)
+
     now = datetime.utcnow()
     tomorrow_date = (now + timedelta(days=1)).date()
-    
+
     temps = []
     precipitation_probs = []
     wind_speeds = []
 
     for entry in data["timeSeries"]:
-        time = datetime.fromisoformat(entry["validTime"].replace("Z","+00:00"))
+        time = datetime.fromisoformat(entry["validTime"].replace("Z", "+00:00"))
         if time.date() == tomorrow_date:
-            for param in entry["parameters"]:
-                if param["name"] == "t":  # temperatur
-                    temps.append(param["values"][0])
-                elif param["name"] == "pcat":  # nederbörd % probability
-                    precipitation_probs.append(param["values"][0])
-                elif param["name"] == "ws":  # vind hastighet m/s
-                    wind_speeds.append(param["values"][0])
+            hour = time.hour
+            if 6 <= hour <= 22:  # mellan 06:00 och 22:00
+                for param in entry["parameters"]:
+                    if param["name"] == "t":
+                        temps.append(param["values"][0])
+                    elif param["name"] == "pcat":  # nederbördssannolikhet
+                        precipitation_probs.append(param["values"][0])
+                    elif param["name"] == "ws":
+                        wind_speeds.append(param["values"][0])
 
-    if temps:
-        temp_min = min(temps)
-        temp_max = max(temps)
-    else:
-        temp_min = temp_max = "N/A"
-
-    if precipitation_probs:
-        prec_prob = max(precipitation_probs)
-    else:
-        prec_prob = "N/A"
-
-    if wind_speeds:
-        wind_max = max(wind_speeds)
-    else:
-        wind_max = "N/A"
+    temp_min = min(temps) if temps else "N/A"
+    temp_max = max(temps) if temps else "N/A"
+    prec_prob = round(sum(precipitation_probs)/len(precipitation_probs), 1) if precipitation_probs else "N/A"
+    wind_max = max(wind_speeds) if wind_speeds else "N/A"
 
     return render_template("index.html",
                            temp_min=temp_min,
